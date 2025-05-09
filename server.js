@@ -11,6 +11,28 @@ const mediaDir = db.mediaDir;
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// 根據檔案類型獲取 Content-Type
+function getContentType(filePath) {
+    const ext = path.extname(filePath).toLowerCase();
+    switch (ext) {
+        case '.mp4':
+            return 'video/mp4';
+        case '.webm':
+            return 'video/webm';
+        case '.mov':
+            return 'video/quicktime';
+        case '.jpg':
+        case '.jpeg':
+            return 'image/jpeg';
+        case '.png':
+            return 'image/png';
+        case '.gif':
+            return 'image/gif';
+        default:
+            return 'application/octet-stream';
+    }
+}
+
 // 設置文件存儲配置
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -119,33 +141,46 @@ app.use('/media', (req, res, next) => {
         // 如果不是影片或沒有 Range 請求頭，使用普通的靜態文件服務
         if (!isVideo || !req.headers.range) {
             return next();
-        }
-
-        // 處理 Range 請求 (用於串流影片)
+        }        // 處理 Range 請求 (用於串流影片)
         const fileSize = stats.size;
         const range = req.headers.range;
         const parts = range.replace(/bytes=/, '').split('-');
         const start = parseInt(parts[0], 10);
-        // 如果 end 不存在，則默認為文件結尾
-        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+        // 設定最大分塊大小 (1MB)，縮小分塊以改善串流效能
+        const maxChunkSize = 1 * 1024 * 1024;
+
+        // 如果 end 不存在或超過最大分塊大小，則設定適當的 end 值
+        let end;
+        if (parts[1]) {
+            end = parseInt(parts[1], 10);
+        } else {
+            // 如果沒有指定 end，則使用 start + maxChunkSize 或文件結尾，取較小者
+            end = Math.min(start + maxChunkSize - 1, fileSize - 1);
+        }
+
         // 計算塊大小
         const chunkSize = (end - start) + 1;
 
-        // 創建文件讀取流
-        const fileStream = fs.createReadStream(filePath, { start, end });
-
-        // 設置回應頭
+        // 創建文件讀取流，提高緩衝區大小
+        const fileStream = fs.createReadStream(filePath, {
+            start,
+            end,
+            highWaterMark: 64 * 1024 // 64KB 的緩衝區大小，提高讀取效率
+        });        // 設置回應頭
         res.writeHead(206, {
             'Content-Range': `bytes ${start}-${end}/${fileSize}`,
             'Accept-Ranges': 'bytes',
             'Content-Length': chunkSize,
-            'Content-Type': 'video/mp4'
+            'Content-Type': getContentType(filePath),
+            'Cache-Control': 'public, max-age=3600' // 客戶端緩存，提高性能
         });
 
-        // 管道流到響應
-        fileStream.pipe(res);
-
-        // 處理錯誤
+        // 增加流的優先級
+        fileStream.on('open', () => {
+            // 管道流到響應
+            fileStream.pipe(res);
+        });        // 處理錯誤
         fileStream.on('error', err => {
             console.error('串流影片時發生錯誤:', err);
             // 如果還沒有發送響應，則發送錯誤
@@ -153,6 +188,22 @@ app.use('/media', (req, res, next) => {
                 res.status(500).send('影片載入失敗');
             } else {
                 // 如果已經發送了部分響應，則結束響應
+                res.end();
+            }
+        });
+
+        // 處理請求終止（例如用戶關閉頁面）
+        req.on('close', () => {
+            fileStream.destroy();
+        });
+
+        // 處理可能的超時
+        req.on('timeout', () => {
+            console.log('請求超時');
+            fileStream.destroy();
+            if (!res.headersSent) {
+                res.status(408).send('請求超時');
+            } else {
                 res.end();
             }
         });
