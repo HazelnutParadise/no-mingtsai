@@ -7,3 +7,4 @@ services:
       - NODE_ENV=production
     volumes:
       - /mnt/hdd0/no-mingtsai/data:/app/data
+    restart: unless-stopped
