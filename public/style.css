@@ -1,79 +1,336 @@
-body {
-  font-family: sans-serif;
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap");
+
+:root {
+  --primary-color: #2ecc71;
+  --primary-dark: #27ae60;
+  --secondary-color: #e74c3c;
+  --secondary-dark: #c0392b;
+  --text-color: #333;
+  --light-bg: #f5f9f7;
+  --border-color: #d4e6d9;
+  --box-shadow: 0 4px 6px rgba(46, 204, 113, 0.1);
+  --transition: all 0.3s ease;
+}
+
+* {
   margin: 0;
-  background-color: #f4f4f4;
-  color: #333;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Noto Sans TC", sans-serif;
+  line-height: 1.6;
+  background-color: var(--light-bg);
+  color: var(--text-color);
+  padding-bottom: 2rem;
 }
 
 .container {
-  width: 80%;
-  margin: auto;
+  width: 90%;
+  max-width: 1200px;
+  margin: 2rem auto;
   overflow: hidden;
-  padding: 20px;
   background-color: #fff;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--box-shadow);
+  border-radius: 8px;
 }
 
 h1,
 h2 {
-  color: #333;
+  padding: 1rem 0;
+  color: var(--primary-dark);
+}
+
+h1 {
+  font-size: 1.8rem;
   text-align: center;
+  margin: 1rem 0;
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: 1rem;
+  color: var(--primary-dark);
+}
+
+h2 {
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+  position: relative;
 }
 
 .form-container,
 .events-container {
-  margin-bottom: 20px;
-  padding: 15px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
+  padding: 1.5rem;
+  margin: 1rem;
+  border-radius: 8px;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text-color);
 }
 
 input[type="text"],
-input[type="url"] {
-  width: calc(100% - 22px);
-  padding: 10px;
-  margin-bottom: 10px;
-  border: 1px solid #ddd;
+input[type="url"],
+input[type="password"] {
+  width: 100%;
+  padding: 0.8rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
+  font-size: 1rem;
+  transition: var(--transition);
+}
+
+input[type="text"]:focus,
+input[type="url"]:focus,
+input[type="password"]:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.2);
+}
+
+button {
+  cursor: pointer;
+  padding: 0.8rem 1.2rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+button:hover {
+  background-color: var(--primary-dark);
+  transform: translateY(-2px);
 }
 
 button[type="submit"] {
   display: block;
   width: 100%;
-  padding: 10px;
-  background-color: #5cb85c;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  padding: 1rem;
+  background-color: var(--primary-color);
 }
 
-button[type="submit"]:hover {
-  background-color: #4cae4c;
+button.delete-btn {
+  background-color: var(--secondary-color);
+  margin-left: 0.5rem;
 }
 
-#eventList {
+button.delete-btn:hover {
+  background-color: var(--secondary-dark);
+}
+
+button.edit-btn {
+  background-color: #1abc9c;
+}
+
+button.edit-btn:hover {
+  background-color: #16a085;
+}
+
+#eventList,
+#adminEventList {
   list-style: none;
   padding: 0;
 }
 
-#eventList li {
-  background-color: #eee;
-  padding: 10px;
-  margin-bottom: 8px;
-  border-radius: 4px;
+#eventList li,
+#adminEventList li {
+  background-color: #fff;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  border-left: 4px solid var(--primary-color);
+  transition: var(--transition);
 }
 
-#eventList li a {
+#eventList li:hover,
+#adminEventList li:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+#eventList li a,
+#adminEventList li a {
+  display: block;
   text-decoration: none;
-  color: #337ab7;
+  color: var(--primary-color);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
 }
 
-#eventList li a:hover {
-  text-decoration: underline;
+#eventList li a:hover,
+#adminEventList li a:hover {
+  color: var(--primary-dark);
+}
+
+.admin-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.8rem;
+}
+
+.admin-controls button {
+  margin-left: 0.5rem;
+}
+
+#editModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: var(--transition);
+}
+
+#editModal.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: var(--box-shadow);
+  transform: translateY(-20px);
+  transition: var(--transition);
+}
+
+#editModal.active .modal-content {
+  transform: translateY(0);
+}
+
+.modal-content h3 {
+  margin-bottom: 1.5rem;
+  color: var(--primary-dark);
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.modal-buttons button {
+  margin-left: 0.5rem;
+}
+
+.modal-buttons button:first-child {
+  background-color: var(--primary-color);
+}
+
+.modal-buttons button:last-child {
+  background-color: #95a5a6;
+}
+
+.notification.success {
+  background-color: var(--primary-dark);
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.back-link i {
+  margin-right: 6px;
+}
+
+.back-link:hover {
+  color: var(--primary-dark);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    width: 95%;
+    margin: 1rem auto;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+  }
+
+  .form-container,
+  .events-container {
+    padding: 1rem;
+    margin: 0.5rem;
+  }
+
+  input[type="text"],
+  input[type="url"],
+  input[type="password"] {
+    padding: 0.7rem;
+  }
+
+  button {
+    padding: 0.7rem 1rem;
+  }
+
+  #adminEventList li {
+    position: relative;
+    padding-bottom: 3.5rem;
+  }
+
+  .admin-controls {
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    left: 0.5rem;
+    justify-content: space-between;
+  }
+
+  .admin-controls button {
+    padding: 0.6rem;
+    margin-left: 0.3rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    width: 100%;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .form-container,
+  .events-container {
+    margin: 0.5rem 0;
+    border-radius: 0;
+  }
+
+  h1 {
+    font-size: 1.3rem;
+  }
+
+  .modal-content {
+    width: 95%;
+  }
 }

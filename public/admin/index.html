@@ -4,54 +4,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>管理頁面</title>
+    <title>管理頁面 - 羅明才選區暴力事件集錦</title>
     <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 
 <body>
     <div class="container">
-        <h1>管理事件</h1>
+        <h1><i class="fas fa-cog"></i> 管理事件</h1>
+
         <div class="events-container">
-            <h2>事件列表</h2>
+            <h2><i class="fas fa-list-alt"></i> 事件列表</h2>
             <ul id="adminEventList">
                 <!-- 事件將會動態插入此處 -->
+                <li class="loading">載入中...</li>
             </ul>
         </div>
 
         <div class="form-container">
-            <h2>更改管理員密碼</h2>
+            <h2><i class="fas fa-key"></i> 更改管理員密碼</h2>
             <form id="changePasswordForm">
-                <div>
-                    <label for="currentPassword">目前密碼:</label>
-                    <input type="password" id="currentPassword" required>
+                <div class="form-group">
+                    <label for="currentPassword"><i class="fas fa-unlock-alt"></i> 目前密碼:</label>
+                    <input type="password" id="currentPassword" placeholder="請輸入目前的密碼" required>
                 </div>
-                <div>
-                    <label for="newPassword">新密碼:</label>
-                    <input type="password" id="newPassword" required>
+                <div class="form-group">
+                    <label for="newPassword"><i class="fas fa-lock"></i> 新密碼:</label>
+                    <input type="password" id="newPassword" placeholder="請輸入新密碼 (至少6個字元)" required>
                 </div>
-                <div>
-                    <label for="confirmNewPassword">確認新密碼:</label>
-                    <input type="password" id="confirmNewPassword" required>
+                <div class="form-group">
+                    <label for="confirmNewPassword"><i class="fas fa-check-circle"></i> 確認新密碼:</label>
+                    <input type="password" id="confirmNewPassword" placeholder="請再次輸入新密碼" required>
                 </div>
-                <button type="submit">更改密碼</button>
+                <button type="submit"><i class="fas fa-save"></i> 更改密碼</button>
             </form>
+        </div>
+
+        <div class="form-container">
+            <a href="../" class="back-link"><i class="fas fa-arrow-left"></i> 返回公開頁面</a>
         </div>
     </div>
 
-    <div id="editModal"
-        style="display:none; position:fixed; top:20%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; border:1px solid black; z-index:1000;">
-        <h3>編輯事件</h3>
-        <input type="hidden" id="editEventId">
-        <div>
-            <label for="editTitle">標題:</label>
-            <input type="text" id="editTitle" style="width: calc(100% - 22px); padding: 10px; margin-bottom: 10px;">
+    <div id="editModal">
+        <div class="modal-content">
+            <h3><i class="fas fa-edit"></i> 編輯事件</h3>
+            <input type="hidden" id="editEventId">
+            <div class="form-group">
+                <label for="editTitle"><i class="fas fa-heading"></i> 標題:</label>
+                <input type="text" id="editTitle">
+            </div>
+            <div class="form-group">
+                <label for="editLink"><i class="fas fa-link"></i> 連結:</label>
+                <input type="url" id="editLink">
+            </div>
+            <div class="modal-buttons">
+                <button onclick="submitEdit()"><i class="fas fa-save"></i> 儲存變更</button>
+                <button onclick="closeModal()"><i class="fas fa-times"></i> 取消</button>
+            </div>
         </div>
-        <div>
-            <label for="editLink">連結:</label>
-            <input type="url" id="editLink" style="width: calc(100% - 22px); padding: 10px; margin-bottom: 10px;">
-        </div>
-        <button onclick="submitEdit()">儲存變更</button>
-        <button onclick="closeModal()">取消</button>
     </div>
 
     <script src="admin_script.js"></script>
