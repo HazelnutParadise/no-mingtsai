@@ -101,7 +101,65 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Serve static files (HTML, CSS, JS)
 app.use(express.static('public'));
 
-// 提供媒體文件的靜態服務
+// 提供媒體文件的靜態服務，支援串流
+app.use('/media', (req, res, next) => {
+    // 擷取請求的文件路徑
+    const filePath = path.join(mediaDir, req.path);
+
+    // 檢查文件是否存在
+    fs.stat(filePath, (err, stats) => {
+        if (err) {
+            // 如果文件不存在或其他錯誤，交給下一個中間件處理
+            return next();
+        }
+
+        // 判斷文件類型
+        const isVideo = /\.(mp4|mov|webm)$/i.test(filePath);
+
+        // 如果不是影片或沒有 Range 請求頭，使用普通的靜態文件服務
+        if (!isVideo || !req.headers.range) {
+            return next();
+        }
+
+        // 處理 Range 請求 (用於串流影片)
+        const fileSize = stats.size;
+        const range = req.headers.range;
+        const parts = range.replace(/bytes=/, '').split('-');
+        const start = parseInt(parts[0], 10);
+        // 如果 end 不存在，則默認為文件結尾
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        // 計算塊大小
+        const chunkSize = (end - start) + 1;
+
+        // 創建文件讀取流
+        const fileStream = fs.createReadStream(filePath, { start, end });
+
+        // 設置回應頭
+        res.writeHead(206, {
+            'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+            'Accept-Ranges': 'bytes',
+            'Content-Length': chunkSize,
+            'Content-Type': 'video/mp4'
+        });
+
+        // 管道流到響應
+        fileStream.pipe(res);
+
+        // 處理錯誤
+        fileStream.on('error', err => {
+            console.error('串流影片時發生錯誤:', err);
+            // 如果還沒有發送響應，則發送錯誤
+            if (!res.headersSent) {
+                res.status(500).send('影片載入失敗');
+            } else {
+                // 如果已經發送了部分響應，則結束響應
+                res.end();
+            }
+        });
+    });
+});
+
+// 一般靜態文件服務
 app.use('/media', express.static(mediaDir));
 
 // API endpoint to get all events

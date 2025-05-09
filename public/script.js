@@ -48,7 +48,43 @@ document.addEventListener('DOMContentLoaded', () => {
         const modalBody = modal.querySelector('.modal-body');
 
         if (isVideo) {
-            modalBody.innerHTML = `<video controls autoplay src="${mediaPath}" class="modal-media"></video>`;
+            // 使用影片串流技術，設置 preload="auto" 啟用預加載
+            // 設置 playsinline 在iOS上內嵌播放
+            // 添加 range 支援，確保正確處理串流請求
+            modalBody.innerHTML = `
+                <video controls autoplay preload="auto" playsinline 
+                    class="modal-media" 
+                    src="${mediaPath}">
+                </video>
+                <div class="video-loading">
+                    <div class="spinner"></div>
+                    <span>影片載入中...</span>
+                </div>`;
+
+            // 監聽影片載入狀態
+            const video = modalBody.querySelector('video');
+            const loadingIndicator = modalBody.querySelector('.video-loading');
+
+            // 當媒體數據開始加載
+            video.addEventListener('loadstart', () => {
+                loadingIndicator.style.display = 'flex';
+            });
+
+            // 當有足夠數據可以開始播放
+            video.addEventListener('canplay', () => {
+                loadingIndicator.style.display = 'none';
+            });
+
+            // 當播放暫停等待更多數據
+            video.addEventListener('waiting', () => {
+                loadingIndicator.style.display = 'flex';
+            });
+
+            // 當錯誤發生
+            video.addEventListener('error', () => {
+                loadingIndicator.style.display = 'none';
+                modalBody.innerHTML = `<div class="video-error">影片載入失敗，請稍後再試</div>`;
+            });
         } else {
             modalBody.innerHTML = `<img src="${mediaPath}" class="modal-media" alt="事件相關圖片">`;
         }
@@ -398,6 +434,33 @@ document.addEventListener('DOMContentLoaded', () => {
             max-width: 100%;
             max-height: 90vh;
             box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        }
+        .video-loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.2em;
+            text-align: center;
+        }
+        .video-loading .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
         }
     `;
     document.head.appendChild(style);

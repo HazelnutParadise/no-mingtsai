@@ -235,7 +235,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const previewContainer = previewModal.querySelector('.preview-container');
         if (isVideo) {
-            previewContainer.innerHTML = `<video controls autoplay src="${mediaPath}" class="preview-media"></video>`;
+            // 使用影片串流技術處理影片播放
+            previewContainer.innerHTML = `
+                <video controls autoplay preload="auto" playsinline 
+                    class="preview-media" 
+                    src="${mediaPath}">
+                </video>
+                <div class="video-loading">
+                    <div class="spinner"></div>
+                    <span>影片載入中...</span>
+                </div>`;
+
+            // 監聽影片載入狀態
+            const video = previewContainer.querySelector('video');
+            const loadingIndicator = previewContainer.querySelector('.video-loading');
+
+            // 當媒體數據開始加載
+            video.addEventListener('loadstart', () => {
+                loadingIndicator.style.display = 'flex';
+            });
+
+            // 當有足夠數據可以開始播放
+            video.addEventListener('canplay', () => {
+                loadingIndicator.style.display = 'none';
+            });
+
+            // 當播放暫停等待更多數據
+            video.addEventListener('waiting', () => {
+                loadingIndicator.style.display = 'flex';
+            });
+
+            // 當錯誤發生
+            video.addEventListener('error', () => {
+                loadingIndicator.style.display = 'none';
+                previewContainer.innerHTML = `<div class="video-error">影片載入失敗，請稍後再試</div>`;
+            });
         } else {
             previewContainer.innerHTML = `<img src="${mediaPath}" class="preview-media" alt="媒體預覽">`;
         }
@@ -604,6 +638,41 @@ document.addEventListener('DOMContentLoaded', () => {
             max-width: 100%;
             max-height: 90vh;
             box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        }
+        .video-loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0,0,0,0.5);
+            color: white;
+            font-size: 1rem;
+            flex-direction: column;
+        }
+        .video-loading .spinner {
+            width: 30px;
+            height: 30px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .video-error {
+            color: white;
+            font-size: 1.2rem;
+            text-align: center;
         }
         
         /* 文件信息樣式 */
