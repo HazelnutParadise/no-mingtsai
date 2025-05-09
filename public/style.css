@@ -134,6 +134,35 @@ button.edit-btn:hover {
   background-color: #16a085;
 }
 
+/* 介紹文字樣式 */
+.intro-text {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 1.2rem;
+  margin: 1rem 0;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  line-height: 1.7;
+  font-weight: 500;
+  box-shadow: 0 4px 8px rgba(46, 204, 113, 0.2);
+  border-left: 5px solid var(--primary-dark);
+  position: relative;
+  text-align: justify;
+  letter-spacing: 0.5px;
+  transition: var(--transition);
+}
+
+.intro-text:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(46, 204, 113, 0.3);
+}
+
+.intro-text i {
+  margin-right: 8px;
+  font-size: 1.2rem;
+  color: #fff;
+}
+
 #eventList,
 #adminEventList {
   list-style: none;
