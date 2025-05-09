@@ -182,6 +182,28 @@ app.get('/api/events', (req, res) => {
             } else {
                 row.mediaFiles = [];
             }
+
+            // 解析標題中的日期
+            row.extractedDate = extractDateFromTitle(row.title);
+        });
+
+        // 根據提取的日期排序
+        rows.sort((a, b) => {
+            // 如果兩個項目都有提取的日期，按日期排序（新的在前）
+            if (a.extractedDate && b.extractedDate) {
+                return b.extractedDate.getTime() - a.extractedDate.getTime();
+            }
+            // 如果只有一個有日期，有日期的排在前面
+            else if (a.extractedDate) {
+                return -1;
+            }
+            else if (b.extractedDate) {
+                return 1;
+            }
+            // 如果都沒有日期，按照資料庫原本的timestamp排序
+            else {
+                return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+            }
         });
 
         res.json({
@@ -190,6 +212,47 @@ app.get('/api/events', (req, res) => {
         });
     });
 });
+
+// 從標題中提取日期的函數
+function extractDateFromTitle(title) {
+    if (!title) return null;
+
+    // 匹配各種日期格式
+    // YYYY/MM/DD 或 YYYY/M/D
+    const fullDateRegex = /^(\d{4})\/(\d{1,2})\/(\d{1,2})/;
+    // MM/DD 或 M/D（當前年份）
+    const shortDateRegex = /^(\d{1,2})\/(\d{1,2})/;
+
+    let match;
+
+    // 嘗試匹配完整日期格式（年/月/日）
+    if ((match = fullDateRegex.exec(title)) !== null) {
+        const year = parseInt(match[1]);
+        const month = parseInt(match[2]) - 1; // 月份從0開始
+        const day = parseInt(match[3]);
+
+        // 檢查是否為有效日期
+        const date = new Date(year, month, day);
+        if (date.getFullYear() === year && date.getMonth() === month && date.getDate() === day) {
+            return date;
+        }
+    }
+
+    // 嘗試匹配簡短日期格式（月/日）
+    if ((match = shortDateRegex.exec(title)) !== null) {
+        const currentYear = new Date().getFullYear();
+        const month = parseInt(match[1]) - 1; // 月份從0開始
+        const day = parseInt(match[2]);
+
+        // 檢查是否為有效日期
+        const date = new Date(currentYear, month, day);
+        if (date.getMonth() === month && date.getDate() === day) {
+            return date;
+        }
+    }
+
+    return null;
+}
 
 // API endpoint to get a single event (for edit form)
 app.get('/api/events/:id', (req, res) => {

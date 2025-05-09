@@ -118,7 +118,37 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.data && result.data.length > 0) {
                 result.data.forEach(event => {
                     const listItem = document.createElement('li');
-                    let content = `<div class="event-title">${event.title}</div>`;
+
+                    // 處理標題中的日期部分
+                    let title = event.title || '';
+                    let displayTitle = title;
+
+                    // 檢查是否有符合日期格式的標題前綴
+                    const fullDateRegex = /^(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(.+)/;
+                    const shortDateRegex = /^(\d{1,2})\/(\d{1,2})\s+(.+)/;
+
+                    let match;
+                    let datePrefix = '';
+
+                    // 嘗試提取並格式化日期
+                    if ((match = fullDateRegex.exec(title)) !== null) {
+                        const year = match[1];
+                        const month = match[2];
+                        const day = match[3];
+                        const restOfTitle = match[4];
+
+                        datePrefix = `<span class="event-date-prefix">${year}/${month}/${day}</span> `;
+                        displayTitle = restOfTitle;
+                    } else if ((match = shortDateRegex.exec(title)) !== null) {
+                        const month = match[1];
+                        const day = match[2];
+                        const restOfTitle = match[3];
+
+                        datePrefix = `<span class="event-date-prefix">${month}/${day}</span> `;
+                        displayTitle = restOfTitle;
+                    }
+
+                    let content = `<div class="event-title">${datePrefix}${displayTitle}</div>`;
 
                     // 添加媒體內容顯示（如果有）
                     if (event.mediaFiles && event.mediaFiles.length > 0) {
@@ -467,6 +497,11 @@ document.addEventListener('DOMContentLoaded', () => {
             to {
                 transform: rotate(360deg);
             }
+        }
+        .event-date-prefix {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-right: 5px;
         }
     `;
     document.head.appendChild(style);
