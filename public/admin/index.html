@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理頁面</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>管理事件</h1>
+        <div class="events-container">
+            <h2>事件列表</h2>
+            <ul id="adminEventList">
+                <!-- 事件將會動態插入此處 -->
+            </ul>
+        </div>
+
+        <div class="form-container">
+            <h2>更改管理員密碼</h2>
+            <form id="changePasswordForm">
+                <div>
+                    <label for="currentPassword">目前密碼:</label>
+                    <input type="password" id="currentPassword" required>
+                </div>
+                <div>
+                    <label for="newPassword">新密碼:</label>
+                    <input type="password" id="newPassword" required>
+                </div>
+                <div>
+                    <label for="confirmNewPassword">確認新密碼:</label>
+                    <input type="password" id="confirmNewPassword" required>
+                </div>
+                <button type="submit">更改密碼</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="editModal"
+        style="display:none; position:fixed; top:20%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; border:1px solid black; z-index:1000;">
+        <h3>編輯事件</h3>
+        <input type="hidden" id="editEventId">
+        <div>
+            <label for="editTitle">標題:</label>
+            <input type="text" id="editTitle" style="width: calc(100% - 22px); padding: 10px; margin-bottom: 10px;">
+        </div>
+        <div>
+            <label for="editLink">連結:</label>
+            <input type="url" id="editLink" style="width: calc(100% - 22px); padding: 10px; margin-bottom: 10px;">
+        </div>
+        <button onclick="submitEdit()">儲存變更</button>
+        <button onclick="closeModal()">取消</button>
+    </div>
+
+    <script src="admin_script.js"></script>
+</body>
+
+</html>
