@@ -75,19 +75,20 @@ function getAdminPassword(callback) {
 
 // 驗證管理員密碼的中間件
 function verifyAdminPassword(req, res, next) {
+    // 支援從formData或JSON中獲取密碼
     const providedPassword = req.body.password;
 
     if (!providedPassword) {
-        return res.status(401).json({ "error": "Password is required" });
+        return res.status(401).json({ "error": "需要提供密碼" });
     }
 
     getAdminPassword((err, adminPassword) => {
         if (err) {
-            return res.status(500).json({ "error": "Internal server error" });
+            return res.status(500).json({ "error": "內部伺服器錯誤" });
         }
 
         if (providedPassword !== adminPassword) {
-            return res.status(401).json({ "error": "Unauthorized: Invalid password" });
+            return res.status(401).json({ "error": "未授權: 密碼無效" });
         }
 
         next();
@@ -128,6 +129,38 @@ app.get('/api/events', (req, res) => {
         res.json({
             "message": "success",
             "data": rows
+        });
+    });
+});
+
+// API endpoint to get a single event (for edit form)
+app.get('/api/events/:id', (req, res) => {
+    const sql = "SELECT * FROM events WHERE id = ?";
+    db.get(sql, req.params.id, (err, row) => {
+        if (err) {
+            res.status(400).json({ "error": err.message });
+            return;
+        }
+
+        if (!row) {
+            res.status(404).json({ "error": "Event not found" });
+            return;
+        }
+
+        // 處理媒體文件路徑
+        if (row.media_files) {
+            try {
+                row.mediaFiles = JSON.parse(row.media_files);
+            } catch (e) {
+                row.mediaFiles = [];
+            }
+        } else {
+            row.mediaFiles = [];
+        }
+
+        res.json({
+            "message": "success",
+            "data": row
         });
     });
 });
@@ -246,30 +279,156 @@ app.delete('/api/events/:id', verifyAdminPassword, (req, res) => {
     });
 });
 
-// API endpoint to update an event (for admin)
-app.put('/api/events/:id', verifyAdminPassword, (req, res) => {
-    const { title, link } = req.body;
+// API endpoint to update an event (for admin) with media files
+app.put('/api/events/:id', upload.array('newMedia', 10), verifyAdminPassword, (req, res) => {
+    const { title, link, keepMediaFiles, removeMediaFiles } = req.body;
+    const files = req.files || [];
 
     if (!title) {
-        res.status(400).json({ "error": "Missing title" });
-        return;
+        // 如果上傳了文件但請求失敗，清理這些文件
+        if (files.length > 0 && req.eventDir) {
+            try {
+                fs.rmdirSync(req.eventDir, { recursive: true });
+            } catch (err) {
+                console.error('刪除文件夾失敗:', err);
+            }
+        }
+        return res.status(400).json({ "error": "標題不能為空" });
     }
 
-    const sql = `UPDATE events set 
-                title = COALESCE(?,title), 
-                link = ? 
-                WHERE id = ?`;
-    const params = [title, link || null, req.params.id];
-
-    db.run(sql, params, function (err, result) {
+    // 先獲取當前事件的媒體文件
+    db.get('SELECT media_files FROM events WHERE id = ?', [req.params.id], (err, row) => {
         if (err) {
-            res.status(400).json({ "error": err.message });
-            return;
+            // 清理上傳的文件
+            if (files.length > 0 && req.eventDir) {
+                try {
+                    fs.rmdirSync(req.eventDir, { recursive: true });
+                } catch (err) {
+                    console.error('刪除文件夾失敗:', err);
+                }
+            }
+            return res.status(400).json({ "error": err.message });
         }
-        res.json({
-            message: "success",
-            data: { id: req.params.id, title, link: link || null },
-            changes: this.changes
+
+        if (!row) {
+            // 清理上傳的文件
+            if (files.length > 0 && req.eventDir) {
+                try {
+                    fs.rmdirSync(req.eventDir, { recursive: true });
+                } catch (err) {
+                    console.error('刪除文件夾失敗:', err);
+                }
+            }
+            return res.status(404).json({ "error": "Event not found" });
+        }
+
+        // 處理媒體文件
+        let currentMediaFiles = [];
+        if (row.media_files) {
+            try {
+                currentMediaFiles = JSON.parse(row.media_files);
+            } catch (e) {
+                currentMediaFiles = [];
+            }
+        }
+
+        // 處理要保留的媒體文件
+        let updatedMediaFiles = [];
+        if (keepMediaFiles) {
+            try {
+                const keepFiles = JSON.parse(keepMediaFiles);
+                // 確保要保留的文件都存在於當前文件列表中
+                updatedMediaFiles = keepFiles.filter(file => currentMediaFiles.includes(file));
+            } catch (e) {
+                console.error('解析保留媒體文件錯誤:', e);
+            }
+        }
+
+        // 處理要刪除的媒體文件
+        if (removeMediaFiles) {
+            try {
+                const removeFiles = JSON.parse(removeMediaFiles);
+                // 刪除這些文件
+                removeFiles.forEach(file => {
+                    const filePath = path.join(mediaDir, file);
+                    if (fs.existsSync(filePath)) {
+                        fs.unlinkSync(filePath);
+                    }
+                });
+
+                // 檢查是否需要刪除空目錄
+                const uniqueDirs = new Set();
+                removeFiles.forEach(file => {
+                    uniqueDirs.add(path.dirname(file));
+                });
+
+                // 檢查每個目錄是否還有其他文件
+                uniqueDirs.forEach(dirName => {
+                    const dirPath = path.join(mediaDir, dirName);
+                    if (fs.existsSync(dirPath)) {
+                        const remainingFiles = fs.readdirSync(dirPath);
+                        if (remainingFiles.length === 0) {
+                            fs.rmdirSync(dirPath);
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error('刪除媒體文件錯誤:', e);
+            }
+        }
+
+        // 添加新上傳的文件
+        if (files.length > 0) {
+            const newMediaFiles = files.map(file => {
+                return path.join(path.basename(req.eventDir), file.filename);
+            });
+            updatedMediaFiles = updatedMediaFiles.concat(newMediaFiles);
+        }
+
+        // 檢查是否至少有連結或媒體
+        if (!link && updatedMediaFiles.length === 0) {
+            // 清理剛上傳的文件
+            if (files.length > 0 && req.eventDir) {
+                try {
+                    fs.rmdirSync(req.eventDir, { recursive: true });
+                } catch (err) {
+                    console.error('刪除文件夾失敗:', err);
+                }
+            }
+            return res.status(400).json({ "error": "請至少提供連結或上傳媒體檔案" });
+        }
+
+        // 更新資料庫
+        const mediaFilesJSON = JSON.stringify(updatedMediaFiles);
+        const sql = `UPDATE events SET 
+                    title = ?,
+                    link = ?,
+                    media_files = ?
+                    WHERE id = ?`;
+        const params = [title, link || null, mediaFilesJSON, req.params.id];
+
+        db.run(sql, params, function (err) {
+            if (err) {
+                // 如果數據庫操作失敗，清理新上傳的文件
+                if (files.length > 0 && req.eventDir) {
+                    try {
+                        fs.rmdirSync(req.eventDir, { recursive: true });
+                    } catch (error) {
+                        console.error('刪除文件夾失敗:', error);
+                    }
+                }
+                return res.status(400).json({ "error": err.message });
+            }
+
+            res.json({
+                message: "success",
+                data: {
+                    id: parseInt(req.params.id),
+                    title,
+                    link: link || null,
+                    mediaFiles: updatedMediaFiles
+                }
+            });
         });
     });
 });

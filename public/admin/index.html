@@ -57,6 +57,15 @@
                 <label for="editLink"><i class="fas fa-link"></i> 連結:</label>
                 <input type="url" id="editLink">
             </div>
+            <div class="form-group" id="editMediaContainer">
+                <label><i class="fas fa-photo-video"></i> 媒體內容:</label>
+                <div id="editMediaList" class="edit-media-list"></div>
+            </div>
+            <div class="form-group">
+                <label for="editMediaUpload"><i class="fas fa-upload"></i> 上傳新媒體:</label>
+                <input type="file" id="editMediaUpload" name="media" multiple accept="image/*,video/*">
+                <div class="file-info" id="editFileInfo">未選擇任何檔案</div>
+            </div>
             <div class="modal-buttons">
                 <button onclick="submitEdit()"><i class="fas fa-save"></i> 儲存變更</button>
                 <button onclick="closeModal()"><i class="fas fa-times"></i> 取消</button>
