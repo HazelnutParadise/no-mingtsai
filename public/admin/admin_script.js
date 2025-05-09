@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isVideo) {
                 mediaItem.innerHTML = `
                     <div class="media-preview-container video-container">
-                        <video src="${mediaPath}" class="media-preview" preload="metadata"></video>
+                        <video src="${mediaPath}#t=0.1" class="media-preview" preload="metadata"></video>
                         <div class="media-overlay" data-action="preview" data-index="${index}">
                             <i class="fas fa-play-circle"></i>
                         </div>
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 mediaItem.innerHTML = `
                     <div class="media-preview-container">
-                        <img src="${mediaPath}" class="media-preview" alt="事件相關圖片">
+                        <img src="${mediaPath}" class="media-preview" loading="eager" alt="事件相關圖片">
                         <div class="media-overlay" data-action="preview" data-index="${index}">
                             <i class="fas fa-search-plus"></i>
                         </div>
@@ -545,6 +545,10 @@ document.addEventListener('DOMContentLoaded', () => {
             border-radius: 4px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .media-preview-container:hover {
+            transform: scale(1.03);
         }
         .media-preview {
             width: 100%;
@@ -555,14 +559,15 @@ document.addEventListener('DOMContentLoaded', () => {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            right: 0;
+            bottom: 0;
             background-color: rgba(0,0,0,0.4);
             display: flex;
             justify-content: center;
             align-items: center;
             opacity: 0;
             transition: opacity 0.3s;
+            transform: none;
         }
         .media-preview-container:hover .media-overlay {
             opacity: 1;
@@ -570,36 +575,10 @@ document.addEventListener('DOMContentLoaded', () => {
         .media-overlay i {
             color: white;
             font-size: 2rem;
-        }
-        .media-actions {
-            margin-top: 5px;
-            text-align: center;
-        }
-        .remove-media-btn {
-            background-color: #e74c3c;
-            color: white;
-            border: none;
-            padding: 5px 8px;
-            border-radius: 3px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .remove-media-btn:hover {
-            background-color: #c0392b;
-        }
-        .no-media {
-            color: #7f8c8d;
-            font-style: italic;
-            padding: 10px 0;
-        }
-        .event-media-count {
-            font-size: 0.9em;
-            color: #7f8c8d;
-            margin: 5px 0;
-        }
-        .event-link {
-            margin: 5px 0;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
         }
         
         /* 媒體預覽模態框 */

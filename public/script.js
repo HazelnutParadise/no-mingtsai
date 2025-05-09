@@ -128,19 +128,19 @@ document.addEventListener('DOMContentLoaded', () => {
                             const isVideo = file.includes('.mp4') || file.includes('.mov') || file.includes('.webm');
 
                             if (isVideo) {
-                                // 影片檔案，添加點擊事件
+                                // 影片檔案，使用 poster 屬性預先顯示視頻縮圖
                                 content += `
                                     <div class="media-container video-container">
-                                        <video src="${mediaPath}" class="media-preview" preload="metadata"></video>
+                                        <video src="${mediaPath}#t=0.1" preload="metadata" class="media-preview"></video>
                                         <div class="media-overlay">
                                             <i class="fas fa-play-circle"></i>
                                         </div>
                                     </div>`;
                             } else {
-                                // 圖片檔案，添加點擊事件
+                                // 圖片檔案，使用 loading="lazy" 屬性延遲載入
                                 content += `
                                     <div class="media-container">
-                                        <img src="${mediaPath}" class="media-preview" alt="事件相關圖片">
+                                        <img src="${mediaPath}" loading="eager" class="media-preview" alt="事件相關圖片">
                                         <div class="media-overlay">
                                             <i class="fas fa-search-plus"></i>
                                         </div>
@@ -325,10 +325,8 @@ document.addEventListener('DOMContentLoaded', () => {
             color: #7f8c8d;
         }
         .media-preview {
-            max-width: 100%;
-            max-height: 200px;
-            margin: 0;
-            border-radius: 4px;
+            width: 100%;
+            height: 100%;
             object-fit: cover;
         }
         .event-media {
@@ -363,7 +361,8 @@ document.addEventListener('DOMContentLoaded', () => {
             cursor: pointer;
             border-radius: 4px;
             overflow: hidden;
-            max-width: 200px;
+            width: 200px;
+            height: 200px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             transition: transform 0.2s;
         }
@@ -377,22 +376,29 @@ document.addEventListener('DOMContentLoaded', () => {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            right: 0;
+            bottom: 0;
             background-color: rgba(0, 0, 0, 0.5);
             display: flex;
             justify-content: center;
             align-items: center;
             opacity: 0;
             transition: opacity 0.3s;
+            transform: none;
         }
         .media-overlay i {
             color: white;
             font-size: 2rem;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
         }
+        
         .video-container .media-preview {
+            width: 100%;
+            height: 100%;
             object-fit: cover;
-            height: 200px;
         }
         
         /* 模態框樣式 */
