@@ -14,19 +14,21 @@ const PORT = process.env.PORT || 3000;
 // 設置文件存儲配置
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        // 為每個事件創建一個唯一的目錄
-        const eventId = uuidv4();
-        const eventDir = path.join(mediaDir, eventId);
+        // 為每個事件創建一個唯一的目錄（一次上傳只創建一次）
+        if (!req.eventId) {
+            const eventId = uuidv4();
+            const eventDir = path.join(mediaDir, eventId);
 
-        if (!fs.existsSync(eventDir)) {
-            fs.mkdirSync(eventDir, { recursive: true });
+            if (!fs.existsSync(eventDir)) {
+                fs.mkdirSync(eventDir, { recursive: true });
+            }
+
+            // 將 eventId 傳給 req 對象，以便後續使用
+            req.eventDir = eventDir;
+            req.eventId = eventId;
         }
 
-        // 將 eventId 傳給 req 對象，以便後續使用
-        req.eventDir = eventDir;
-        req.eventId = eventId;
-
-        cb(null, eventDir);
+        cb(null, req.eventDir);
     },
     filename: function (req, file, cb) {
         // 使用隨機名稱 + 原始副檔名
