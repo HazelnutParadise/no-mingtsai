@@ -11,6 +11,13 @@ if (!fs.existsSync(dataDir)) {
     console.log(`Created directory: ${dataDir}`);
 }
 
+// 創建媒體文件存儲目錄
+const mediaDir = path.join(dataDir, 'media');
+if (!fs.existsSync(mediaDir)) {
+    fs.mkdirSync(mediaDir, { recursive: true });
+    console.log(`Created media directory: ${mediaDir}`);
+}
+
 // Define the path for the database file within the 'data' directory
 const DBSOURCE = path.join(dataDir, 'db.sqlite');
 
@@ -29,13 +36,14 @@ const db = new sqlite3.Database(DBSOURCE, (err) => {
         db.run(`CREATE TABLE IF NOT EXISTS events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
-            link TEXT NOT NULL,
+            link TEXT,
+            media_files TEXT,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )`, (err) => {
             if (err) {
                 console.log('Events table already exists or error creating table.');
             } else {
-                console.log('Events table created.');
+                console.log('Events table created or updated.');
             }
         });
 
@@ -69,7 +77,73 @@ const db = new sqlite3.Database(DBSOURCE, (err) => {
                 });
             }
         });
+
+        // 檢查是否需要更新表結構
+        db.get("PRAGMA table_info(events)", [], (err, rows) => {
+            if (err) {
+                console.error("Error checking table schema:", err.message);
+                return;
+            }
+
+            // 檢查是否有 media_files 字段
+            db.get("SELECT COUNT(*) as count FROM pragma_table_info('events') WHERE name='media_files'", [], (err, row) => {
+                if (err) {
+                    console.error("Error checking for media_files column:", err.message);
+                    return;
+                }
+
+                // 如果沒有 media_files 字段，添加它
+                if (row.count === 0) {
+                    db.run("ALTER TABLE events ADD COLUMN media_files TEXT", (err) => {
+                        if (err) {
+                            console.error("Error adding media_files column:", err.message);
+                        } else {
+                            console.log("Added media_files column to events table");
+                        }
+                    });
+                }
+
+                // 檢查 link 是否為 NOT NULL
+                db.get("SELECT COUNT(*) as count FROM pragma_table_info('events') WHERE name='link' AND [notnull]=1", [], (err, row) => {
+                    if (err) {
+                        console.error("Error checking link column constraint:", err.message);
+                        return;
+                    }
+
+                    // 如果 link 是 NOT NULL，需要創建新表來移除約束
+                    if (row.count > 0) {
+                        console.log("Recreating events table to make link column nullable");
+                        db.serialize(() => {
+                            db.run("BEGIN TRANSACTION");
+
+                            // 創建新表
+                            db.run(`CREATE TABLE IF NOT EXISTS events_new (
+                                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                title TEXT NOT NULL,
+                                link TEXT,
+                                media_files TEXT,
+                                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                            )`);
+
+                            // 複製數據
+                            db.run("INSERT INTO events_new SELECT id, title, link, media_files, timestamp FROM events");
+
+                            // 刪除舊表
+                            db.run("DROP TABLE events");
+
+                            // 重命名新表
+                            db.run("ALTER TABLE events_new RENAME TO events");
+
+                            db.run("COMMIT");
+
+                            console.log("Successfully updated events table schema");
+                        });
+                    }
+                });
+            });
+        });
     }
 });
 
 module.exports = db;
+module.exports.mediaDir = mediaDir;

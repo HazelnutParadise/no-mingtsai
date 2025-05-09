@@ -1,6 +1,73 @@
 document.addEventListener('DOMContentLoaded', () => {
     const eventForm = document.getElementById('eventForm');
     const eventList = document.getElementById('eventList');
+    const fileInput = document.getElementById('media');
+    const fileInfo = document.getElementById('fileInfo');
+    // 添加模態框元素
+    let mediaModal = null;
+
+    // 創建模態框用於查看媒體文件
+    function createMediaModal() {
+        // 如果已存在則返回
+        if (mediaModal) return mediaModal;
+
+        // 創建模態框元素
+        mediaModal = document.createElement('div');
+        mediaModal.className = 'media-modal';
+        mediaModal.innerHTML = `
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <div class="modal-body"></div>
+            </div>
+        `;
+
+        // 為關閉按鈕添加事件
+        const closeButton = mediaModal.querySelector('.close-modal');
+        closeButton.addEventListener('click', () => {
+            mediaModal.style.display = 'none';
+            // 清空內容以停止影片播放
+            mediaModal.querySelector('.modal-body').innerHTML = '';
+        });
+
+        // 點擊模態框背景時也關閉
+        mediaModal.addEventListener('click', (e) => {
+            if (e.target === mediaModal) {
+                mediaModal.style.display = 'none';
+                mediaModal.querySelector('.modal-body').innerHTML = '';
+            }
+        });
+
+        // 添加到頁面
+        document.body.appendChild(mediaModal);
+        return mediaModal;
+    }
+
+    // 打開媒體文件的函數
+    function openMediaInModal(mediaPath, isVideo) {
+        const modal = createMediaModal();
+        const modalBody = modal.querySelector('.modal-body');
+
+        if (isVideo) {
+            modalBody.innerHTML = `<video controls autoplay src="${mediaPath}" class="modal-media"></video>`;
+        } else {
+            modalBody.innerHTML = `<img src="${mediaPath}" class="modal-media" alt="事件相關圖片">`;
+        }
+
+        modal.style.display = 'flex';
+    }
+
+    // 顯示選擇的文件信息
+    if (fileInput) {
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                let fileNames = Array.from(fileInput.files).map(file => file.name).join(', ');
+                let fileCount = fileInput.files.length;
+                fileInfo.textContent = `已選擇 ${fileCount} 個檔案: ${fileNames}`;
+            } else {
+                fileInfo.textContent = '未選擇任何檔案';
+            }
+        });
+    }
 
     // Function to fetch and display events
     async function fetchEvents() {
@@ -15,13 +82,59 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.data && result.data.length > 0) {
                 result.data.forEach(event => {
                     const listItem = document.createElement('li');
-                    listItem.innerHTML = `
-                        <a href="${event.link}" target="_blank">
-                            <i class="fas fa-external-link-alt"></i> ${event.title}
-                        </a>
-                        <div class="event-date">${formatDate(event.timestamp)}</div>
-                    `;
+                    let content = `<div class="event-title">${event.title}</div>`;
+
+                    // 添加媒體內容顯示（如果有）
+                    if (event.mediaFiles && event.mediaFiles.length > 0) {
+                        content += '<div class="event-media">';
+                        event.mediaFiles.forEach(file => {
+                            const mediaPath = `/media/${file}`;
+                            const isVideo = file.includes('.mp4') || file.includes('.mov') || file.includes('.webm');
+
+                            if (isVideo) {
+                                // 影片檔案，添加點擊事件
+                                content += `
+                                    <div class="media-container video-container">
+                                        <video src="${mediaPath}" class="media-preview" preload="metadata"></video>
+                                        <div class="media-overlay">
+                                            <i class="fas fa-play-circle"></i>
+                                        </div>
+                                    </div>`;
+                            } else {
+                                // 圖片檔案，添加點擊事件
+                                content += `
+                                    <div class="media-container">
+                                        <img src="${mediaPath}" class="media-preview" alt="事件相關圖片">
+                                        <div class="media-overlay">
+                                            <i class="fas fa-search-plus"></i>
+                                        </div>
+                                    </div>`;
+                            }
+                        });
+                        content += '</div>';
+                    }
+
+                    // 添加連結（如果有）
+                    if (event.link) {
+                        content += `<a href="${event.link}" target="_blank" class="event-link">
+                            <i class="fas fa-external-link-alt"></i> 連結
+                        </a>`;
+                    }
+
+                    content += `<div class="event-date">${formatDate(event.timestamp)}</div>`;
+                    listItem.innerHTML = content;
                     eventList.appendChild(listItem);
+
+                    // 為媒體添加點擊事件
+                    if (event.mediaFiles && event.mediaFiles.length > 0) {
+                        const mediaContainers = listItem.querySelectorAll('.media-container');
+                        event.mediaFiles.forEach((file, index) => {
+                            const isVideo = file.includes('.mp4') || file.includes('.mov') || file.includes('.webm');
+                            mediaContainers[index].addEventListener('click', () => {
+                                openMediaInModal(`/media/${file}`, isVideo);
+                            });
+                        });
+                    }
                 });
             } else {
                 eventList.innerHTML = '<li class="no-events">目前尚無事件記錄。</li>';
@@ -73,6 +186,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = document.getElementById('title').value;
             const link = document.getElementById('link').value;
 
+            // 檢查至少有連結或媒體檔案
+            if (!link && (!fileInput.files || fileInput.files.length === 0)) {
+                showNotification('請至少提供連結或上傳媒體檔案', false);
+                return;
+            }
+
             // Add loading state to button
             const submitButton = eventForm.querySelector('button[type="submit"]');
             const originalButtonText = submitButton.innerHTML;
@@ -80,12 +199,21 @@ document.addEventListener('DOMContentLoaded', () => {
             submitButton.disabled = true;
 
             try {
+                // 使用 FormData 來處理檔案上傳
+                const formData = new FormData();
+                formData.append('title', title);
+                if (link) formData.append('link', link);
+
+                // 添加所有選擇的媒體檔案
+                if (fileInput.files && fileInput.files.length > 0) {
+                    for (let i = 0; i < fileInput.files.length; i++) {
+                        formData.append('media', fileInput.files[i]);
+                    }
+                }
+
                 const response = await fetch('/api/events', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ title, link }),
+                    body: formData, // 不要設置 Content-Type，讓瀏覽器自動設置
                 });
 
                 if (!response.ok) {
@@ -100,6 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Reset form and refresh event list
                 eventForm.reset();
+                fileInfo.textContent = '未選擇任何檔案';
                 fetchEvents();
             } catch (error) {
                 console.error("Failed to submit event:", error);
@@ -112,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Add CSS class for notification
+    // Add CSS class for notification and media display
     const style = document.createElement('style');
     style.textContent = `
         .notification {
@@ -158,6 +287,117 @@ document.addEventListener('DOMContentLoaded', () => {
             text-align: center;
             padding: 15px;
             color: #7f8c8d;
+        }
+        .media-preview {
+            max-width: 100%;
+            max-height: 200px;
+            margin: 0;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+        .event-media {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .file-info {
+            margin-top: 5px;
+            font-size: 0.85em;
+            color: #7f8c8d;
+        }
+        .event-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 8px;
+        }
+        .event-link {
+            display: inline-block;
+            margin: 5px 0;
+            color: #3498db;
+            text-decoration: none;
+        }
+        .event-link:hover {
+            text-decoration: underline;
+        }
+        
+        /* 媒體容器樣式 */
+        .media-container {
+            position: relative;
+            cursor: pointer;
+            border-radius: 4px;
+            overflow: hidden;
+            max-width: 200px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .media-container:hover {
+            transform: scale(1.03);
+        }
+        .media-container:hover .media-overlay {
+            opacity: 1;
+        }
+        .media-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .media-overlay i {
+            color: white;
+            font-size: 2rem;
+        }
+        .video-container .media-preview {
+            object-fit: cover;
+            height: 200px;
+        }
+        
+        /* 模態框樣式 */
+        .media-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 1100;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+            overflow: auto;
+        }
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            z-index: 1110;
+            text-shadow: 0 0 5px rgba(0,0,0,0.8);
+        }
+        .modal-body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-media {
+            max-width: 100%;
+            max-height: 90vh;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
         }
     `;
     document.head.appendChild(style);
