@@ -1,0 +1,9 @@
+services:
+  app:
+    image: no-mingtsai:latest
+    ports:
+      - "8080:3000"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - /mnt/hdd0/no-mingtsai/data:/app/data
